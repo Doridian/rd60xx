@@ -193,11 +193,11 @@ class RD6006:
         self._write_register(83, int(value * self.current_resolution))
 
     @property
-    def enable(self):
+    def output_enable(self):
         return self._read_register(18)
 
-    @enable.setter
-    def enable(self, value):
+    @output_enable.setter
+    def output_enable(self, value):
         self._write_register(18, int(value))
 
     @property
