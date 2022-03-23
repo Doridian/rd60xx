@@ -1,6 +1,6 @@
 # RIDEN RD6006 Python module
 
-This module allows to control a RD6006 via the USB interface using Python.
+This module allows to control a RD6006 via the network using Python (needs a flashed WiFi module with ESP-link or similar).
 
 As with previous models, the RD6006 uses the Modbus protocol over serial, the
 registers however are different than the DPS models. The registers are described
@@ -23,8 +23,8 @@ $ python setup.py install --user
 
 ```
 In [1]: from rd6006 import RD6006
-In [2]: r = RD6006('/dev/ttyUSB3')                                                                         
-In [3]: r.status()                                                                                                
+In [2]: r = RD6006(ip=10.1.2.3, port=23)
+In [3]: r.status()
 == Device
 Model   : 60062
 SN      : 3917
@@ -42,9 +42,9 @@ Current : 0.2A
 Voltage : 3.4V
 Current : 0.2A
 
-In [8]: r.voltage=1.8                                                                                             
-In [10]: r.enable=True                                                                                            
-In [11]: r.status()                                                                                               
+In [8]: r.voltage=1.8
+In [10]: r.enable=True
+In [11]: r.status()
 == Device
 Model   : 60062
 SN      : 3917
