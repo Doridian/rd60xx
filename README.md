@@ -27,3 +27,7 @@ In [2]: r = RD60XX(ip=10.1.2.3, port=23)
 In [3]: r.set_voltage=1.8
 In [4]: r.output_enable=True
 ```
+
+## Credits
+
+Thanks to https://github.com/Baldanos/rd6006 for the register documentation and initial base for this module before heavy modifications to support modbus RTU-over-TCP and restructuring.
