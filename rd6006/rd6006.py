@@ -1,5 +1,4 @@
 from pymodbus.client.sync import ModbusRtuFramer, ModbusTcpClient as ModbusClient
-from pymodbus.exceptions import ModbusIOException
 from sys import argv
 
 class RD6006:
@@ -13,14 +12,15 @@ class RD6006:
         self.fw = regs[3] / 100
         self.type = int(regs[0] / 10)
 
+        self.voltage_resolution = 100
+        self.power_resolution = 100
+
         if self.type == 6012 or self.type == 6018:
             print("RD6012 or RD6018 detected")
-            self.voltres = 100
-            self.ampres = 100
+            self.current_resolution = 100
         else:
             print("RD6006 or other detected")
-            self.voltres = 100
-            self.ampres = 1000
+            self.current_resolution = 1000
 
     def __repr__(self):
         return f"RD6006 SN:{self.sn} FW:{self.fw}"
@@ -43,7 +43,7 @@ class RD6006:
         """reads the 4 register of a Memory[0-9] and print on a single line"""
         regs = self._read_registers(M * 4 + 80, 4)
         print(
-            f"M{M}: {regs[0] / self.voltres:4.1f}V, {regs[1] / self.ampres:3.3f}A, OVP:{regs[2] / self.voltres:4.1f}V, OCP:{regs[3] / self.ampres:3.3f}A"
+            f"M{M}: {regs[0] / self.voltage_resolution:4.1f}V, {regs[1] / self.current_resolution:3.3f}A, OVP:{regs[2] / self.voltage_resolution:4.1f}V, OCP:{regs[3] / self.current_resolution:3.3f}A"
         )
 
     def status(self):
@@ -52,7 +52,7 @@ class RD6006:
         print(f"Model   : {regs[0]/10}")
         print(f"SN      : {(regs[1]<<16 | regs[2]):08d}")
         print(f"Firmware: {regs[3]/100}")
-        print(f"Input   : {regs[14] / self.voltres}V")
+        print(f"Input   : {regs[14] / self.voltage_resolution}V")
         if regs[4]:
             sign = -1
         else:
@@ -64,20 +64,20 @@ class RD6006:
             sign = +1
         print(f"TempProb: {sign * regs[35]}°C")
         print("== Output")
-        print(f"Voltage : {regs[10] / self.voltres}V")
-        print(f"Current : {regs[11] / self.ampres}A")
+        print(f"Voltage : {regs[10] / self.voltage_resolution}V")
+        print(f"Current : {regs[11] / self.current_resolution}A")
         print(f"Energy  : {regs[12]/1000}Ah")
         print(f"Power   : {regs[13]/100}W")
         print("== Settings")
-        print(f"Voltage : {regs[8] / self.voltres}V")
-        print(f"Current : {regs[9] / self.ampres}A")
+        print(f"Voltage : {regs[8] / self.voltage_resolution}V")
+        print(f"Current : {regs[9] / self.current_resolution}A")
         print("== Protection")
-        print(f"Voltage : {regs[82] / self.voltres}V")
-        print(f"Current : {regs[83] / self.ampres}A")
+        print(f"Voltage : {regs[82] / self.voltage_resolution}V")
+        print(f"Current : {regs[83] / self.current_resolution}A")
         print("== Battery")
         if regs[32]:
             print("Active")
-            print(f"Voltage : {regs[33] / self.voltres}V")
+            print(f"Voltage : {regs[33] / self.voltage_resolution}V")
         print(
             f"Capacity: {(regs[38] <<16 | regs[39])/1000}Ah"
         )  # TODO check 8 or 16 bits?
@@ -90,99 +90,94 @@ class RD6006:
 
     @property
     def input_voltage(self):
-        return self._read_register(14) / self.voltres
+        return self._read_register(14) / self.voltage_resolution
+
+    def _read_temperature(self, base_register):
+        regs = self._read_registers(base_register, 2)
+        sign = 1
+        if regs[0]:
+            sign = -1
+        return sign * regs[1]
 
     @property
-    def voltage(self):
-        return self._read_register(8) / self.voltres
+    def temperature_internal(self):
+        return self._read_temperature(4)
 
     @property
-    def meastemp_internal(self):
-        if self._read_register(4):
-            return -1 * self._read_register(5)
-        else:
-            return 1 * self._read_register(5)
+    def temperature_internal_fahrenheit(self):
+        return self._read_temperature(6)
 
     @property
-    def meastempf_internal(self):
-        if self._read_register(6):
-            return -1 * self._read_register(7)
-        else:
-            return 1 * self._read_register(7)
+    def temperature_probe(self):
+        return self._read_temperature(34)
 
     @property
-    def meastemp_external(self):
-        if self._read_register(34):
-            return -1 * self._read_register(35)
-        else:
-            return 1 * self._read_register(35)
+    def temperature_probe_fahrenheit(self):
+        return self._read_temperature(36)
 
     @property
-    def meastempf_external(self):
-        if self._read_register(36):
-            return -1 * self._read_register(37)
-        else:
-            return 1 * self._read_register(37)
+    def target_voltage(self):
+        return self._read_register(8) / self.voltage_resolution
 
-    @voltage.setter
-    def voltage(self, value):
-        self._write_register(8, int(value * self.voltres))
+    @target_voltage.setter
+    def target_voltage(self, value):
+        self._write_register(8, int(value * self.voltage_resolution))
 
     @property
-    def measvoltage(self):
-        return self._read_register(10) / self.voltres
+    def measured_voltage(self):
+        return self._read_register(10) / self.voltage_resolution
 
     @property
-    def meascurrent(self):
-        return self._read_register(11) / self.ampres
+    def measured_current(self):
+        return self._read_register(11) / self.current_resolution
 
     @property
-    def measpower(self):
-        return self._read_register(13) / 100
+    def measured_power(self):
+        return self._read_register(13) / self.power_resolution
 
     @property
-    def measah(self):
+    def measured_ampere_hours(self):
         return (
             self._read_register(38) << 16 | self._read_register(39)
         ) / 1000  # TODO check 16 or 8 bit
 
     @property
-    def measwh(self):
+    def measured_watt_hours(self):
         return (
             self._read_register(40) << 16 | self._read_register(41)
         ) / 1000  # TODO check 16 or 8 bit
 
     @property
-    def battmode(self):
+    def battery_mode(self):
         return self._read_register(32)
 
     @property
-    def battvoltage(self):
+    def measured_battery_voltage(self):
         return self._read_register(33)
 
     @property
-    def current(self):
-        return self._read_register(9) / self.ampres
+    def target_current(self):
+        return self._read_register(9) / self.current_resolution
 
-    @current.setter
-    def current(self, value):
-        self._write_register(9, int(value * self.ampres))
+    @target_current.setter
+    def target_current(self, value):
+        self._write_register(9, int(value * self.current_resolution))
 
     @property
     def voltage_protection(self):
-        return self._read_register(82) / self.voltres
+        return self._read_register(82) / self.voltage_resolution
 
     @voltage_protection.setter
     def voltage_protection(self, value):
-        self._write_register(82, int(value * self.voltres))
+        self._write_register(82, int(value * self.voltage_resolution))
 
     @property
     def current_protection(self):
-        return self._read_register(83) / self.ampres
+        return self._read_register(83) / self.current_resolution
 
     @current_protection.setter
     def current_protection(self, value):
-        self._write_register(83, int(value * self.ampres))
+        self._write_register(83, int(value * self.current_resolution))
 
     @property
     def enable(self):
@@ -241,23 +236,6 @@ class RD6006:
         self._write_register(51, h)
         self._write_register(52, m)
         self._write_register(53, s)
-
-    @property
-    def read_timeout(self):
-        return self.instrument.serial.timeout
-
-    @read_timeout.setter
-    def read_timeout(self, value):
-        self.instrument.serial.timeout = value
-
-    @property
-    def write_timeout(self):
-        return self.instrument.serial.write_timeout
-
-    @write_timeout.setter
-    def write_timeout(self, value):
-        self.instrument.serial.write_timeout = value
-
 
 if __name__ == "__main__":
     r = RD6006(argv[1], int(argv[2], 10))
