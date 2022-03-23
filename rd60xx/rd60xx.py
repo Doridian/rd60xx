@@ -33,9 +33,9 @@ class RD60XX:
         self.instrument = ModbusClient(host=host, port=port, framer=ModbusRtuFramer)
         self.instrument.connect()
 
+        self.type = self._read_register(0) // 10
         self.sn = self._read_int32(1)
         self.fw = self._read_register(3) / 100
-        self.type = self._read_register(0) // 10
 
         self.voltage_resolution = 100
         self.power_resolution = 100
