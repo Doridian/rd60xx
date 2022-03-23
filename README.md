@@ -24,6 +24,6 @@ $ python setup.py install --user
 ```
 In [1]: from rd60xx import RD60XX
 In [2]: r = RD60XX(ip=10.1.2.3, port=23)
-In [3]: r.voltage=1.8
-In [4]: r.enable=True
+In [3]: r.set_voltage=1.8
+In [4]: r.output_enable=True
 ```
