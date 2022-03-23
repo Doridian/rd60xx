@@ -68,7 +68,7 @@ class RD60XX:
         return res.registers
 
     def _write_register(self, register, value):
-        res = self.instrument.write_register(register, value, unit=1)
+        res = self.instrument.write_register(register, round(value), unit=1)
         if res.isError():
             raise res
 
@@ -142,10 +142,10 @@ class RD60XX:
 
     def write_memory(self, index, memory):
         regs = [
-            memory.set_voltage * self.voltage_resolution,
-            memory.set_current * self.current_resolution,
-            memory.protection_cutoff_voltage * self.voltage_resolution,
-            memory.protection_cutoff_current * self.current_resolution
+            round(memory.set_voltage * self.voltage_resolution),
+            round(memory.set_current * self.current_resolution),
+            round(memory.protection_cutoff_voltage * self.voltage_resolution),
+            round(memory.protection_cutoff_current * self.current_resolution)
         ]
         self._write_registers(self._get_memory_base_address(index), regs)
 
