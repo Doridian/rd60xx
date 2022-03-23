@@ -19,6 +19,16 @@ def _make_prop(register, read, write, factor=1):
 
     return property(fget, fset)
 
+class RD60XXMemory:
+    def __init__(self, set_voltage, set_current, protection_cutoff_voltage, protection_cutoff_current):
+        self.set_voltage = set_voltage
+        self.set_current = set_current
+        self.protection_cutoff_voltage = protection_cutoff_voltage
+        self.protection_cutoff_current = protection_cutoff_current
+
+    def __repr__(self):
+        return f"RD60XXMemory Set: {self.set_voltage}V {self.set_current}A; Protection: {self.protection_cutoff_voltage}V {self.protection_cutoff_current}A"
+
 class RD60XX:
     PROTECTION_OK = 0
     PROTECTION_OVP = 1
@@ -118,8 +128,29 @@ class RD60XX:
     def sync_datetime(self):
         self.datetime = datetime.now()
 
+    def _get_memory_base_address(self, index):
+        return index * 4 + 80
+
+    def read_memory(self, index):
+        regs = self._read_registers(self._get_memory_base_address(index), 4)
+        return RD60XXMemory(
+            set_voltage=regs[0] / self.voltage_resolution,
+            set_current=regs[1] / self.current_resolution,
+            protection_cutoff_voltage=regs[2] / self.voltage_resolution,
+            protection_cutoff_current=regs[3] / self.current_resolution
+        )
+
+    def write_memory(self, index, memory):
+        regs = [
+            memory.set_voltage * self.voltage_resolution,
+            memory.set_current * self.current_resolution,
+            memory.protection_cutoff_voltage * self.voltage_resolution,
+            memory.protection_cutoff_current * self.current_resolution
+        ]
+        self._write_registers(self._get_memory_base_address(index), regs)
+
 if __name__ == "__main__":
     r = RD60XX(argv[1], int(argv[2], 10))
     print(r)
     r.sync_datetime()
-    print(r.set_voltage)
+    print(r.read_memory(0))
