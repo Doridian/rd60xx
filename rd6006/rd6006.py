@@ -1,7 +1,15 @@
 from pymodbus.client.sync import ModbusRtuFramer, ModbusTcpClient as ModbusClient
 from sys import argv
+from datetime import datetime
 
 class RD6006:
+    PROTECTION_OK = 0
+    PROTECTION_OVP = 1
+    PROTECTION_OCP = 2
+
+    OUTPUT_CV = 0
+    OUTPUT_CC = 1
+
     def __init__(self, host, port):
         self.host = host
         self.port = port
@@ -36,6 +44,11 @@ class RD6006:
 
     def _write_register(self, register, value):
         res = self.instrument.write_register(register, value, unit=1)
+        if res.isError():
+            raise res
+
+    def _write_registers(self, register, values):
+        res = self.instrument.write_registers(address=register, values=values, unit=1)
         if res.isError():
             raise res
 
@@ -116,11 +129,11 @@ class RD6006:
         return self._read_temperature(36)
 
     @property
-    def target_voltage(self):
+    def set_voltage(self):
         return self._read_register(8) / self.voltage_resolution
 
-    @target_voltage.setter
-    def target_voltage(self, value):
+    @set_voltage.setter
+    def set_voltage(self, value):
         self._write_register(8, int(value * self.voltage_resolution))
 
     @property
@@ -136,13 +149,13 @@ class RD6006:
         return self._read_register(13) / self.power_resolution
 
     @property
-    def measured_ampere_hours(self):
+    def measured_capacity(self): # Ampere hours
         return (
             self._read_register(38) << 16 | self._read_register(39)
         ) / 1000  # TODO check 16 or 8 bit
 
     @property
-    def measured_watt_hours(self):
+    def measured_energy(self): # Watt hours
         return (
             self._read_register(40) << 16 | self._read_register(41)
         ) / 1000  # TODO check 16 or 8 bit
@@ -156,27 +169,27 @@ class RD6006:
         return self._read_register(33)
 
     @property
-    def target_current(self):
+    def set_current(self):
         return self._read_register(9) / self.current_resolution
 
-    @target_current.setter
-    def target_current(self, value):
+    @set_current.setter
+    def set_current(self, value):
         self._write_register(9, int(value * self.current_resolution))
 
     @property
-    def voltage_protection(self):
+    def protection_cutoff_voltage(self):
         return self._read_register(82) / self.voltage_resolution
 
-    @voltage_protection.setter
-    def voltage_protection(self, value):
+    @protection_cutoff_voltage.setter
+    def protection_cutoff_voltage(self, value):
         self._write_register(82, int(value * self.voltage_resolution))
 
     @property
-    def current_protection(self):
+    def protection_cutoff_current(self):
         return self._read_register(83) / self.current_resolution
 
-    @current_protection.setter
-    def current_protection(self, value):
+    @protection_cutoff_current.setter
+    def protection_cutoff_current(self, value):
         self._write_register(83, int(value * self.current_resolution))
 
     @property
@@ -188,54 +201,32 @@ class RD6006:
         self._write_register(18, int(value))
 
     @property
-    def ocpovp(self):
+    def protection_status(self):
         return self._read_register(16)
 
     @property
-    def CVCC(self):
+    def output_status(self):
         return self._read_register(17)
 
     @property
-    def backlight(self):
+    def backlight_brightness(self):
         return self._read_register(72)
 
-    @backlight.setter
-    def backlight(self, value):
+    @backlight_brightness.setter
+    def backlight_brightness(self, value):
         self._write_register(72, value)
 
     @property
-    def date(self):
-        """returns the date as tuple: (year, month, day)"""
-        regs = self._read_registers(48, 3)
-        year = regs[0]
-        month = regs[1]
-        day = regs[2]
-        return (year, month, day)
+    def datetime(self):
+        regs = self._read_registers(48, 6)
+        return datetime(year=regs[0], month=regs[1], day=regs[2], hour=regs[3], minute=regs[4], second=regs[5])
 
-    @date.setter
-    def date(self, value):
-        """Sets the date, needs tuple with (year, month, day) as argument"""
-        year, month, day = value
-        self._write_register(48, year)
-        self._write_register(49, month)
-        self._write_register(50, day)
+    @datetime.setter
+    def datetime(self, value):
+        self.instrument.write_registers(48, [value.year, value.month, value.day, value.hour, value.minute, value.second])
 
-    @property
-    def time(self):
-        """returns the time as tuple: (h, m, s)"""
-        regs = self._read_registers(51, 3)
-        h = regs[0]
-        m = regs[1]
-        s = regs[2]
-        return (h, m, s)
-
-    @time.setter
-    def time(self, value):
-        """sets the time, needs time with (h, m, s) as argument"""
-        h, m, s = value
-        self._write_register(51, h)
-        self._write_register(52, m)
-        self._write_register(53, s)
+    def sync_datetime(self):
+        self.datetime = datetime.now()
 
 if __name__ == "__main__":
     r = RD6006(argv[1], int(argv[2], 10))
