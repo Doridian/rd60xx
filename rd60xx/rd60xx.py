@@ -88,7 +88,7 @@ class RD60XX:
         regs = self._read_registers(base_register, 2)
         return regs[0] << 16 | regs[1]
 
-    input_volage = _make_prop(14, read=_read_register, write=None, factor="voltage_resolution")
+    input_voltage = _make_prop(14, read=_read_register, write=None, factor="voltage_resolution")
 
     temperature_internal = _make_prop(4, read=_read_signed_number, write=None)
     temperature_internal_fahrenheit = _make_prop(6, read=_read_signed_number, write=None)
