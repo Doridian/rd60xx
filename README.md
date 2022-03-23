@@ -24,41 +24,6 @@ $ python setup.py install --user
 ```
 In [1]: from rd60xx import RD60XX
 In [2]: r = RD60XX(ip=10.1.2.3, port=23)
-In [3]: r.status()
-== Device
-Model   : 60062
-SN      : 3917
-Firmware: 1.26
-Input   : 12.28V
-Temp    : 26°C
-== Output
-Voltage : 0.0V
-Current : 0.0A
-Power   : 0.0W
-== Settings
-Voltage : 3.33V
-Current : 0.2A
-== Protection
-Voltage : 3.4V
-Current : 0.2A
-
-In [8]: r.voltage=1.8
-In [10]: r.enable=True
-In [11]: r.status()
-== Device
-Model   : 60062
-SN      : 3917
-Firmware: 1.26
-Input   : 12.28V
-Temp    : 26°C
-== Output
-Voltage : 1.79V
-Current : 0.0A
-Power   : 0.0W
-== Settings
-Voltage : 1.8V
-Current : 0.2A
-== Protection
-Voltage : 3.4V
-Current : 0.2A
+In [3]: r.voltage=1.8
+In [4]: r.enable=True
 ```
