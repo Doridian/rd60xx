@@ -1,14 +1,13 @@
-import minimalmodbus
-
-minimalmodbus.TIMEOUT = 0.5
-
+from pymodbus.client.sync import ModbusRtuFramer, ModbusTcpClient as ModbusClient
+from pymodbus.exceptions import ModbusIOException
+from sys import argv
 
 class RD6006:
-    def __init__(self, port, address=1, baudrate=115200):
+    def __init__(self, host, port):
+        self.host = host
         self.port = port
-        self.address = address
-        self.instrument = minimalmodbus.Instrument(port=port, slaveaddress=address)
-        self.instrument.serial.baudrate = baudrate
+        self.instrument = ModbusClient(host=host, port=port, framer=ModbusRtuFramer)
+        self.instrument.connect()
         regs = self._read_registers(0, 4)
         self.sn = regs[1] << 16 | regs[2]
         self.fw = regs[3] / 100
@@ -27,24 +26,18 @@ class RD6006:
         return f"RD6006 SN:{self.sn} FW:{self.fw}"
 
     def _read_register(self, register):
-        try:
-            return self.instrument.read_register(register)
-        except minimalmodbus.NoResponseError:
-            return self._read_register(register)
+        return self._read_registers(register, 1)[0]
 
     def _read_registers(self, start, length):
-        try:
-            return self.instrument.read_registers(start, length)
-        except minimalmodbus.NoResponseError:
-            return self._read_registers(start, length)
-        except minimalmodbus.InvalidResponseError:
-            return self._read_registers(start, length)
+        res = self.instrument.read_holding_registers(start, length, unit=1)
+        if res.isError():
+            raise res
+        return res.registers
 
     def _write_register(self, register, value):
-        try:
-            return self.instrument.write_register(register, value)
-        except minimalmodbus.NoResponseError:
-            return self._write_register(register, value)
+        res = self.instrument.write_register(register, value, unit=1)
+        if res.isError():
+            raise res
 
     def _mem(self, M=0):
         """reads the 4 register of a Memory[0-9] and print on a single line"""
@@ -267,14 +260,5 @@ class RD6006:
 
 
 if __name__ == "__main__":
-    import serial.tools.list_ports
-
-    ports = list(serial.tools.list_ports.comports())
-    for p in ports:
-        if "VID:PID=1A86:7523" in p[2]:
-            print(p)
-            r = RD6006(p[0])
-            break
-    else:
-        raise Exception("Port not found")
+    r = RD6006(argv[1], int(argv[2], 10))
     r.status()
