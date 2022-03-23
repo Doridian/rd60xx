@@ -1,8 +1,8 @@
-# RIDEN RD6006 Python module
+# RIDEN RD60XX Python module
 
-This module allows to control a RD6006 via the network using Python (needs a flashed WiFi module with ESP-link or similar).
+This module allows to control a RD60XX via the network using Python (needs a flashed WiFi module with ESP-link or similar).
 
-As with previous models, the RD6006 uses the Modbus protocol over serial, the
+As with previous models, the RD60XX uses the Modbus protocol over serial, the
 registers however are different than the DPS models. The registers are described
 in the [registers.md](registers.md) file.
 
@@ -22,8 +22,8 @@ $ python setup.py install --user
 ## Usage
 
 ```
-In [1]: from rd6006 import RD6006
-In [2]: r = RD6006(ip=10.1.2.3, port=23)
+In [1]: from rd60xx import RD60XX
+In [2]: r = RD60XX(ip=10.1.2.3, port=23)
 In [3]: r.status()
 == Device
 Model   : 60062

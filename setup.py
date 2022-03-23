@@ -10,22 +10,22 @@
 
 import setuptools
 
-import rd6006
+import rd60xx
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="rd6006",
-    version=rd6006.__version__,
-    author="Baldanos",
-    author_email="balda@balda.ch",
-    description="Python bindings for RD6006",
+    name="rd60xx",
+    version=rd60xx.__version__,
+    author="Doridian",
+    author_email="git@doridian.net",
+    description="Python bindings for RD60XX",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/Baldanos/rd6006",
+    url="https://github.com/Doridian/rd60xx",
     packages=setuptools.find_packages(),
-    install_requires=['pyserial', 'minimalmodbus'],
+    install_requires=['PyModbus'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: Apache Software License",
