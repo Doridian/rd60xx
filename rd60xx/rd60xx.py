@@ -37,23 +37,38 @@ class RD60XX:
     OUTPUT_CV = 0
     OUTPUT_CC = 1
 
+    TYPE_RD6006  = 60062
+    TYPE_RD6012  = 60121
+    TYPE_RD6018  = 60181
+    TYPE_RD6006P = 60065
+
+    __SUPPORTED_TYPES = [TYPE_RD6006, TYPE_RD6012, TYPE_RD6018, TYPE_RD6006P]
+
     def __init__(self, host, port):
         self.host = host
         self.port = port
         self.instrument = ModbusClient(host=host, port=port, framer=ModbusRtuFramer)
         self.instrument.connect()
 
-        self.type = self._read_register(0) // 10
+        self.type = self._read_register(0)
+
+        if self.type not in self.__SUPPORTED_TYPES:
+            self.instrument.close()
+            self.instrument = None
+            raise Exception(f"RD60XX type {self.type} is not supported, yet!")
+
         self.sn = self._read_int32(1)
         self.fw = self._read_register(3) / 100
 
         self.voltage_resolution = 100
         self.power_resolution = 100
+        self.current_resolution = 100
 
-        if self.type == 6012 or self.type == 6018:
-            self.current_resolution = 100
-        else:
+        if self.type == self.TYPE_RD6006:
             self.current_resolution = 1000
+        elif self.type == self.TYPE_RD6006P:
+            self.current_resolution = 10000
+            self.voltage_resolution = 1000
 
     def __repr__(self):
         return f"RD{self.type} SN:{self.sn} FW:{self.fw}"
