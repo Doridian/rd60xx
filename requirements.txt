@@ -1,1 +1,1 @@
-PyModbus==3.2.2
+PyModbus==3.3.0
